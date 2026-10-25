@@ -15,7 +15,7 @@
     },
     {
       "cldbid": "4",
-      "client_nickname": "Maxi",
+      "client_nickname": "Alice",
       "client_lastconnected": "1700000000",
       "client_totalconnections": "12",
       "client_unique_identifier": "MASKED_UID_4=",
@@ -24,7 +24,7 @@
     },
     {
       "cldbid": "7",
-      "client_nickname": "Maku",
+      "client_nickname": "Bob",
       "client_lastconnected": "1700001000",
       "client_totalconnections": "30",
       "client_unique_identifier": "MASKED_UID_7=",
@@ -33,7 +33,7 @@
     },
     {
       "cldbid": "48",
-      "client_nickname": "Maxi",
+      "client_nickname": "Alice",
       "client_lastconnected": "1690000000",
       "client_totalconnections": "3",
       "client_unique_identifier": "MASKED_UID_48=",

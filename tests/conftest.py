@@ -22,8 +22,8 @@ ENTRY_DATA = {
     "scan_interval": 60,
 }
 USERS = [
-    {"db_id": 4, "uid": "MASKED_UID_4=", "name": "Maxi"},
-    {"db_id": 7, "uid": "MASKED_UID_7=", "name": "Maku"},
+    {"db_id": 4, "uid": "MASKED_UID_4=", "name": "Alice"},
+    {"db_id": 7, "uid": "MASKED_UID_7=", "name": "Bob"},
 ]
 
 
