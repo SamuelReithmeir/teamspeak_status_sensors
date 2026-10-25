@@ -51,16 +51,16 @@ async def test_user_devices_and_entity_ids(hass, entry, aioclient_mock):
     await setup(hass, entry, aioclient_mock)
     dev_reg = dr.async_get(hass)
     server = dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=")})
-    maku = dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=_user_7")})
-    assert maku.name == "TeamSpeak Maku"
-    assert maku.via_device_id == server.id
+    bob = dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=_user_7")})
+    assert bob.name == "TeamSpeak Bob"
+    assert bob.via_device_id == server.id
 
     ent_reg = er.async_get(hass)
     assert (
         ent_reg.async_get_entity_id(
             "binary_sensor", DOMAIN, "MASKED_SERVER_UID=_user_7_online"
         )
-        == "binary_sensor.tsonline_maku"
+        == "binary_sensor.tsonline_bob"
     )
     # disabled by default
     for key in ("microphone_muted", "talking"):
@@ -81,12 +81,12 @@ async def test_user_devices_and_entity_ids(hass, entry, aioclient_mock):
 
 async def test_online_state_and_attributes(hass, entry, aioclient_mock):
     await setup(hass, entry, aioclient_mock)
-    state = hass.states.get("binary_sensor.tsonline_maxi")
+    state = hass.states.get("binary_sensor.tsonline_alice")
     assert state.state == "on"
     assert state.attributes["device_class"] == "presence"
     assert state.attributes["since"] == "2023-11-14T22:13:20+00:00"
     assert state.attributes["since_estimated"] is False
-    assert state.attributes["nickname"] == "Maxi"
+    assert state.attributes["nickname"] == "Alice"
     assert state.attributes["database_id"] == 4
     assert state.attributes["channel"] == "Lobby"
     assert state.attributes["headphones_muted"] is True
@@ -95,26 +95,26 @@ async def test_online_state_and_attributes(hass, entry, aioclient_mock):
     for secret in ("uid", "unique", "ip"):
         assert not [k for k in state.attributes if secret in k]
 
-    assert hass.states.get("sensor.teamspeak_maxi_channel").state == "Lobby"
-    assert hass.states.get("sensor.teamspeak_maxi_total_connections").state == "12"
+    assert hass.states.get("sensor.teamspeak_alice_channel").state == "Lobby"
+    assert hass.states.get("sensor.teamspeak_alice_total_connections").state == "12"
     assert (
-        hass.states.get("binary_sensor.teamspeak_maxi_headphones_muted").state == "on"
+        hass.states.get("binary_sensor.teamspeak_alice_headphones_muted").state == "on"
     )
-    assert hass.states.get("binary_sensor.teamspeak_maxi_away").state == "off"
+    assert hass.states.get("binary_sensor.teamspeak_alice_away").state == "off"
     assert (
-        hass.states.get("sensor.teamspeak_maxi_online_since_last_seen").state
+        hass.states.get("sensor.teamspeak_alice_online_since_last_seen").state
         == "2023-11-14T22:13:20+00:00"
     )
 
 
 async def test_duplicate_nicknames_use_db_id(hass, entry, aioclient_mock):
-    """Account 48 is also called Maxi but is not online."""
+    """Account 48 is also called Alice but is not online."""
     hass.config_entries.async_update_entry(
         entry,
-        options={"users": [{"db_id": 48, "uid": "MASKED_UID_48=", "name": "Maxi2"}]},
+        options={"users": [{"db_id": 48, "uid": "MASKED_UID_48=", "name": "Alice2"}]},
     )
     await setup(hass, entry, aioclient_mock)
-    state = hass.states.get("binary_sensor.tsonline_maxi2")
+    state = hass.states.get("binary_sensor.tsonline_alice2")
     assert state.state == "off"
     assert state.attributes["since_estimated"] is True  # never observed
     assert state.attributes["since"] == "2023-07-22T04:26:40+00:00"
@@ -128,16 +128,16 @@ async def test_going_offline_is_observed_and_persisted(
     left = dt_util.utcnow().replace(microsecond=0)
     await refresh(hass, entry, aioclient_mock, clientlist=clientlist_without("7"))
 
-    state = hass.states.get("binary_sensor.tsonline_maku")
+    state = hass.states.get("binary_sensor.tsonline_bob")
     assert state.state == "off"
     assert state.attributes["since"] == left.isoformat()
     assert state.attributes["since_estimated"] is False
     assert state.attributes["channel"] is None
     # status sensors are unavailable while offline; since sensor keeps a value
-    assert hass.states.get("binary_sensor.teamspeak_maku_away").state == "unavailable"
-    assert hass.states.get("sensor.teamspeak_maku_channel").state == "unavailable"
+    assert hass.states.get("binary_sensor.teamspeak_bob_away").state == "unavailable"
+    assert hass.states.get("sensor.teamspeak_bob_channel").state == "unavailable"
     assert (
-        hass.states.get("sensor.teamspeak_maku_online_since_last_seen").state
+        hass.states.get("sensor.teamspeak_bob_online_since_last_seen").state
         == left.isoformat()
     )
 
@@ -150,7 +150,7 @@ async def test_going_offline_is_observed_and_persisted(
     mock_server(aioclient_mock, clientlist=clientlist_without("7"))
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    state = hass.states.get("binary_sensor.tsonline_maku")
+    state = hass.states.get("binary_sensor.tsonline_bob")
     assert state.attributes["since"] == left.isoformat()
     assert state.attributes["since_estimated"] is False
 
@@ -164,7 +164,7 @@ async def test_left_while_ha_was_down_is_estimated(
         "data": {"users": {"7": {"online": True, "offline_since": None}}},
     }
     await setup(hass, entry, aioclient_mock, clientlist=clientlist_without("7"))
-    state = hass.states.get("binary_sensor.tsonline_maku")
+    state = hass.states.get("binary_sensor.tsonline_bob")
     assert state.state == "off"
     assert state.attributes["since_estimated"] is True
     assert state.attributes["since"] == "2023-11-14T22:30:00+00:00"
@@ -183,7 +183,7 @@ async def test_stale_observation_is_discarded_if_user_reconnected_meanwhile(
         },
     }
     await setup(hass, entry, aioclient_mock, clientlist=clientlist_without("7"))
-    state = hass.states.get("binary_sensor.tsonline_maku")
+    state = hass.states.get("binary_sensor.tsonline_bob")
     assert state.attributes["since_estimated"] is True
 
 
@@ -218,7 +218,7 @@ async def test_failure_marks_unavailable_backs_off_and_recovers(
     await coordinator.async_refresh()
     await coordinator.async_refresh()
     await hass.async_block_till_done()
-    assert hass.states.get("binary_sensor.tsonline_maku").state == "unavailable"
+    assert hass.states.get("binary_sensor.tsonline_bob").state == "unavailable"
     assert hass.states.get("sensor.test_server_clients_online").state == "unavailable"
     assert coordinator.update_interval == timedelta(seconds=240)  # 60 * 2**2
     warnings = [
@@ -231,7 +231,7 @@ async def test_failure_marks_unavailable_backs_off_and_recovers(
     assert "SECRET-API-KEY" not in caplog.text
 
     await refresh(hass, entry, aioclient_mock)
-    assert hass.states.get("binary_sensor.tsonline_maku").state == "on"
+    assert hass.states.get("binary_sensor.tsonline_bob").state == "on"
     assert coordinator.update_interval == timedelta(seconds=60)
 
 

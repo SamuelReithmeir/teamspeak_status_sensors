@@ -86,14 +86,14 @@ automation:
           message: "The TeamSpeak server is full."
 ```
 
-How long has Maku been online (or offline)?
+How long has Bob been online (or offline)?
 
 ```yaml
 template:
   - sensor:
-      - name: "Maku TeamSpeak duration"
+      - name: "Bob TeamSpeak duration"
         state: >
-          {% set since = state_attr('binary_sensor.tsonline_maku', 'since') %}
+          {% set since = state_attr('binary_sensor.tsonline_bob', 'since') %}
           {{ (now() - as_datetime(since)).total_seconds() | int if since else none }}
 ```
 

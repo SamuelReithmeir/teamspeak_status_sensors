@@ -35,24 +35,24 @@ async def test_add_user_dropdown_and_entry(hass, entry, aioclient_mock):
         o["value"]: o["label"]
         for o in result["data_schema"].schema["db_id"].config["options"]
     }
-    # query client (ID 1) excluded; both "Maxi" accounts distinguishable
-    assert labels == {"48": "Maxi (ID 48)", "4": "Maxi (ID 4)", "7": "Maku (ID 7)"}
+    # query client (ID 1) excluded; both "Alice" accounts distinguishable
+    assert labels == {"48": "Alice (ID 48)", "4": "Alice (ID 4)", "7": "Bob (ID 7)"}
 
     calls_before = aioclient_mock.call_count
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"db_id": "7", "name": "Maku"}
+        result["flow_id"], {"db_id": "7", "name": "Bob"}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options["users"] == [
-        {"db_id": 7, "uid": "MASKED_UID_7=", "name": "Maku"}
+        {"db_id": 7, "uid": "MASKED_UID_7=", "name": "Bob"}
     ]
     await hass.async_block_till_done()  # reload
-    assert hass.states.get("binary_sensor.tsonline_maku") is not None
+    assert hass.states.get("binary_sensor.tsonline_bob") is not None
     assert aioclient_mock.call_count > calls_before
 
 
 async def test_add_user_rejects_duplicate_name(hass, entry, aioclient_mock):
-    result = await start(hass, entry, aioclient_mock)  # Maxi + Maku configured
+    result = await start(hass, entry, aioclient_mock)  # Alice + Bob configured
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"next_step_id": "add_user"}
     )
@@ -61,7 +61,7 @@ async def test_add_user_rejects_duplicate_name(hass, entry, aioclient_mock):
     ]
     assert labels == ["48"]  # already configured users are not offered again
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"db_id": "48", "name": "Maxi"}
+        result["flow_id"], {"db_id": "48", "name": "Alice"}
     )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"name": "name_exists"}
@@ -86,7 +86,7 @@ async def test_edit_user_renames_device_but_keeps_entity_id(
         {(DOMAIN, "MASKED_SERVER_UID=_user_7")}
     )
     assert device.name == "TeamSpeak Marcus"
-    assert hass.states.get("binary_sensor.tsonline_maku") is not None
+    assert hass.states.get("binary_sensor.tsonline_bob") is not None
 
 
 async def test_remove_user_removes_device_and_entities(hass, entry, aioclient_mock):
@@ -104,8 +104,8 @@ async def test_remove_user_removes_device_and_entities(hass, entry, aioclient_mo
     assert dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=_user_7")}) is None
     assert dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=_user_4")}) is not None
     assert dev_reg.async_get_device({(DOMAIN, "MASKED_SERVER_UID=")}) is not None
-    assert hass.states.get("binary_sensor.tsonline_maku") is None
+    assert hass.states.get("binary_sensor.tsonline_bob") is None
     assert not [
         e for e in er.async_get(hass).entities.values() if "_user_7_" in e.unique_id
     ]
-    assert hass.states.get("binary_sensor.tsonline_maxi").state == "on"
+    assert hass.states.get("binary_sensor.tsonline_alice").state == "on"
