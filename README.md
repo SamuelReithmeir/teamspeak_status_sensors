@@ -1,181 +1,125 @@
-# TeamSpeak Server Info Integration for Home Assistant
+# TeamSpeak Server Info for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE)
 
-Monitor your TeamSpeak server directly from Home Assistant! This integration provides real-time information about your TeamSpeak server using the WebQuery API.
+A Home Assistant integration for TeamSpeak 6 servers. It talks to the HTTP web query (not the old telnet ServerQuery) and exposes server statistics, plus a device per TeamSpeak user that you pick yourself, showing whether they are online, for how long, and what they are doing.
 
-## Features
+## Server device
 
-- 🎯 **7 Sensor Entities** tracking key server metrics
-- 👥 **Client Monitoring** with detailed client list attributes
-- 📊 **Bandwidth Tracking** for sent and received data
-- ⏱️ **Server Uptime** monitoring
-- 🔄 **Configurable Update Interval**
-- 🎨 **Device-based Organization** - all sensors grouped under one device per virtual server
+Every virtual server becomes one device with these sensors:
 
-## Sensors
+| Sensor             | Description                                      | Attributes                                 |
+| ------------------ | ------------------------------------------------ | ------------------------------------------ |
+| Clients online     | Connected users, query clients not counted       | `client_list` (trimmed), `query_clients`   |
+| Channels           | Number of channels                               | `channel_list`                             |
+| Uptime             | Server uptime in seconds                         |                                            |
+| Max clients        | Maximum allowed clients                          |                                            |
+| Bandwidth received | Incoming bandwidth in bytes/s                    | `total_bytes`, `last_minute`               |
+| Bandwidth sent     | Outgoing bandwidth in bytes/s                    | `total_bytes`, `last_minute`               |
+| Server status      | Current server status                            | server name, version, platform, port       |
 
-| Sensor                 | Description                      | Device Class | Attributes                           |
-| ---------------------- | -------------------------------- | ------------ | ------------------------------------ |
-| **Clients Online**     | Connected users (query clients excluded) | -    | Client list (trimmed), Query clients count |
-| **Channels**           | Number of channels on the server | -            | Full channel list                    |
-| **Uptime**             | Server uptime in seconds         | Duration     | -                                    |
-| **Max Clients**        | Maximum allowed clients          | -            | -                                    |
-| **Bandwidth Received** | Incoming bandwidth (bytes/sec)   | Data Rate    | Total bytes, Last minute average     |
-| **Bandwidth Sent**     | Outgoing bandwidth (bytes/sec)   | Data Rate    | Total bytes, Last minute average     |
-| **Server Status**      | Current server status            | -            | Server name, version, platform, port |
+`client_list` only contains channel id, client id, database id, nickname and client type. IP addresses and unique identifiers are never exposed.
 
 ## Tracking users
 
-In **Settings → Devices & Services → TeamSpeak Server Info → Configure** you can
-**add**, **edit** or **remove** users. Pick a user from the list of everyone the
-server has ever seen (shown as `Nickname (ID n)`, so duplicate nicknames can be told
-apart) and give it a display name. Each user becomes a device `TeamSpeak <name>`
-below the server device, with:
+Open **Settings → Devices & Services → TeamSpeak Server Info → Configure** and choose Add user, Edit user or Remove user. Adding a user means picking someone from the list of everyone the server has ever seen and giving them a display name. The list shows `Nickname (ID n)`, so two accounts with the same nickname can be told apart. Query clients are left out.
 
-| Entity | Notes |
-| ------ | ----- |
-| `binary_sensor.tsonline_<name>` | Presence. Attributes: `since` (ISO time), `since_estimated`, `nickname`, `database_id`, `channel`, `microphone_muted`, `headphones_muted`, `away`, `talking` |
-| Microphone muted, Headphones muted, Away, Talking | Only headphones muted and away are enabled by default |
-| Channel | Channel name; refreshed together with the user list |
-| Online since / last seen | Timestamp sensor; session start while online, time the user left while offline |
-| Total connections | Diagnostic |
+Each tracked user gets a device `TeamSpeak <name>` below the server device. Users are matched by their database id, never by nickname. The unique identifier is stored as a fallback in case database ids change.
 
-`since` while online is the start of the current session. While offline it is the
-moment the integration saw the user leave; this is stored, so it survives Home
-Assistant restarts. If the user left while Home Assistant was not running, it falls
-back to the start of their last session and `since_estimated` is `true`.
+| Entity                                            | Notes                                                                                                                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `binary_sensor.tsonline_<name>`                   | Presence. Attributes: `since`, `since_estimated`, `nickname`, `database_id`, `channel`, `microphone_muted`, `headphones_muted`, `away`, `talking`                      |
+| Microphone muted, Headphones muted, Away, Talking | Unavailable while the user is offline. Only headphones muted and away are enabled by default.                                                                          |
+| Channel                                           | Channel name, unavailable while offline                                                                                                                                |
+| Online since / last seen                          | Timestamp sensor                                                                                                                                                       |
+| Total connections                                 | Diagnostic                                                                                                                                                             |
 
-The entity id of the presence sensor is fixed at `binary_sensor.tsonline_<slug of the
-display name>`. If you already have a template sensor with that id, rename or delete
-it first, otherwise Home Assistant appends `_2`.
+The presence sensor's entity id is `binary_sensor.tsonline_` followed by the slugified display name. If a template sensor already uses that id, rename or delete it first, otherwise Home Assistant appends `_2`. Renaming a user later changes the device name but keeps the entity id.
 
-Users are identified by their database id (the unique identifier is stored as a second
-key), never by nickname. Only `clientlist` (every poll), `serverinfo` (every poll),
-`clientdblist` and `channellist` (every 5 minutes) are requested.
+### How `since` works
 
-## Prerequisites
+While a user is online, `since` is the start of their current session. Once they leave, it becomes the moment the integration noticed it, and that value is stored on disk so it survives Home Assistant restarts. If the user left while Home Assistant was not running, there is no such moment. In that case `since` falls back to the start of their last session as reported by the server, and `since_estimated` is `true`.
 
-### TeamSpeak Server Requirements
+### Load on the server
 
-1. **WebQuery API enabled** on your server
-2. **API Key** for authentication
+The TeamSpeak query runs on a single thread, so the integration keeps its traffic low and sends one request at a time. Every poll requests `serverinfo` and `clientlist`. `clientdblist` and `channellist` are requested at most every five minutes, which also means channel names and total connections update at that pace. If a poll fails, the entities become unavailable, the polling interval backs off up to 15 minutes, and a single warning is logged.
 
 ## Installation
 
-### HACS (Recommended)
+### HACS
 
-1. Make sure [HACS](https://hacs.xyz/) is installed in your Home Assistant instance
-2. Add this repository as a custom repository in HACS:
-   - Click on HACS in the sidebar
-   - Click on "Integrations"
-   - Click the three dots in the top right corner
-   - Select "Custom repositories"
-   - Add `https://github.com/SamuelReithmeir/teamspeak_status_sensors` as repository
-   - Select "Integration" as category
-   - Click "Add"
-3. Click "Install" on the TeamSpeak Server Info card
-4. Restart Home Assistant
+1. Open HACS, choose the three-dot menu and then Custom repositories.
+2. Add `https://github.com/SamuelReithmeir/teamspeak_status_sensors` with the category Integration.
+3. Install TeamSpeak Server Info and restart Home Assistant.
 
-### Manual Installation
+### Manual
 
-1. Download the latest release from the [releases page][releases]
-2. Extract the `custom_components/samuelre_teamspeak` folder
-3. Copy it to your Home Assistant's `custom_components` directory
-4. Restart Home Assistant
+Download the latest release from the [releases page][releases], copy `custom_components/samuelre_teamspeak` into your `custom_components` directory and restart Home Assistant.
 
-## Configuration
+## Setup
 
-### Via Home Assistant UI (Recommended)
+You need the web query enabled on your TeamSpeak server and an API key. Then add the integration under **Settings → Devices & Services → Add Integration** and enter:
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **+ Add Integration**
-3. Search for **TeamSpeak Server Info**
-4. Enter your configuration:
-   - **Host**: IP address or hostname of your TeamSpeak server
-   - **WebQuery Port**: Port where WebQuery is running (default: 10080)
-   - **Virtual Server ID**: The ID of your virtual server (usually 1)
-   - **API Key**: Your WebQuery API key
-   - **Scan Interval**: How often to update (in seconds, default: 60)
+- **Host**: address of the TeamSpeak server
+- **Port**: web query port, 10080 by default
+- **Virtual server ID**: usually 1
+- **API key**: your web query API key
+- **Update interval**: seconds between polls, 60 by default, minimum 5
 
-## Usage Examples
+## Examples
 
-### Automation: Notify When Server is Full
+Notify when the server is full:
 
 ```yaml
 automation:
-  - alias: "TeamSpeak Server Full Alert"
-    trigger:
-      - platform: template
-        value_template: "{{ states('sensor.teamspeak_server_clients_online') | int >= states('sensor.teamspeak_server_max_clients') | int }}"
-    action:
-      - service: notify.mobile_app
+  - alias: "TeamSpeak server full"
+    triggers:
+      - trigger: template
+        value_template: >
+          {{ states('sensor.teamspeak_server_clients_online') | int
+             >= states('sensor.teamspeak_server_max_clients') | int }}
+    actions:
+      - action: notify.mobile_app
         data:
-          message: "TeamSpeak server is full!"
+          message: "The TeamSpeak server is full."
 ```
 
-### Template: Display Active Clients
+How long has Maku been online (or offline)?
 
 ```yaml
-sensor:
-  - platform: template
-    sensors:
-      ts_active_users:
-        friendly_name: "Active TeamSpeak Users"
-        value_template: >
-          {% set clients = state_attr('sensor.teamspeak_server_clients_online', 'client_list') %}
-          {{ clients | map(attribute='client_nickname') | join(', ') if clients else 'None' }}
+template:
+  - sensor:
+      - name: "Maku TeamSpeak duration"
+        state: >
+          {% set since = state_attr('binary_sensor.tsonline_maku', 'since') %}
+          {{ (now() - as_datetime(since)).total_seconds() | int if since else none }}
 ```
-
 
 ## Troubleshooting
 
-### Connection Errors
+If the integration cannot connect, check that the web query is enabled, that the port is reachable from Home Assistant, and that the API key is correct. A quick manual test:
 
-1. **Verify WebQuery is enabled**: Check your TeamSpeak server configuration
-2. **Test API access**: Use curl to test the API:
-   ```bash
-   curl -X POST http://YOUR_SERVER_IP:10080/1/serverinfo \
-     -H "x-api-key: YOUR_API_KEY"
-   ```
-3. **Check firewall**: Ensure port 10080 (or your custom port) is accessible
-4. **Verify credentials**: Make sure the API key is correct and has proper permissions
+```bash
+curl -X POST "http://YOUR_SERVER_IP:10080/1/serverinfo?api-key=YOUR_API_KEY"
+```
 
-### Integration Not Showing Up
+Avoid sending other query commands by hand in bursts. The TeamSpeak 6 beta handles them on one thread and can stop answering. Errors from the integration are logged under `custom_components.samuelre_teamspeak`.
 
-1. Clear browser cache
-2. Restart Home Assistant
-3. Check `home-assistant.log` for errors related to `samuelre_teamspeak`
+## Development
 
-## Contributing
+Tests use mocked HTTP and masked fixtures, no live server is needed:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-- 🐛 [Report a bug][issues]
-- 💡 [Request a feature][issues]
-- 💬 [Ask a question][issues]
+```bash
+pip install -r requirements_test.txt
+pytest
+```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Credits
-
-Developed by [@SamuelReithmeir](https://github.com/SamuelReithmeir)
-
-## Disclaimer
-
-This integration is not officially affiliated with or endorsed by TeamSpeak Systems GmbH.
-
----
-
-**If you like this integration, please give it a ⭐ on GitHub!**
+MIT, see [LICENSE](LICENSE). This project is not affiliated with or endorsed by TeamSpeak Systems GmbH.
 
 [releases-shield]: https://img.shields.io/github/release/SamuelReithmeir/teamspeak_status_sensors.svg
 [releases]: https://github.com/SamuelReithmeir/teamspeak_status_sensors/releases
 [license-shield]: https://img.shields.io/github/license/SamuelReithmeir/teamspeak_status_sensors.svg
-[issues]: https://github.com/SamuelReithmeir/teamspeak_status_sensors/issues
