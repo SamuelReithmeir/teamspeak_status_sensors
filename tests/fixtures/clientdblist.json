@@ -1,0 +1,44 @@
+{
+  "status": {
+    "code": 0,
+    "message": "ok"
+  },
+  "body": [
+    {
+      "cldbid": "1",
+      "client_nickname": "serveradmin",
+      "client_lastconnected": "1700000500",
+      "client_totalconnections": "50",
+      "client_unique_identifier": "MASKED_QUERY_UID=",
+      "client_login_name": "serveradmin",
+      "client_lastip": "MASKED"
+    },
+    {
+      "cldbid": "4",
+      "client_nickname": "Maxi",
+      "client_lastconnected": "1700000000",
+      "client_totalconnections": "12",
+      "client_unique_identifier": "MASKED_UID_4=",
+      "client_login_name": "",
+      "client_lastip": "MASKED"
+    },
+    {
+      "cldbid": "7",
+      "client_nickname": "Maku",
+      "client_lastconnected": "1700001000",
+      "client_totalconnections": "30",
+      "client_unique_identifier": "MASKED_UID_7=",
+      "client_login_name": "",
+      "client_lastip": "MASKED"
+    },
+    {
+      "cldbid": "48",
+      "client_nickname": "Maxi",
+      "client_lastconnected": "1690000000",
+      "client_totalconnections": "3",
+      "client_unique_identifier": "MASKED_UID_48=",
+      "client_login_name": "",
+      "client_lastip": "MASKED"
+    }
+  ]
+}

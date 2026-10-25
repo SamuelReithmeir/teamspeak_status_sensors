@@ -1,0 +1,59 @@
+{
+  "status": {
+    "code": 0,
+    "message": "ok"
+  },
+  "body": [
+    {
+      "clid": "1",
+      "cid": "1",
+      "client_database_id": "4",
+      "client_nickname": "Maxi",
+      "client_type": "0",
+      "client_unique_identifier": "MASKED_UID_4=",
+      "client_away": "0",
+      "client_away_message": "",
+      "client_flag_talking": "0",
+      "client_input_muted": "0",
+      "client_output_muted": "1",
+      "client_lastconnected": "1700000000",
+      "client_idle_time": "1000",
+      "client_platform": "Windows",
+      "client_version": "MASKED"
+    },
+    {
+      "clid": "2",
+      "cid": "2",
+      "client_database_id": "7",
+      "client_nickname": "Maku",
+      "client_type": "0",
+      "client_unique_identifier": "MASKED_UID_7=",
+      "client_away": "0",
+      "client_away_message": "",
+      "client_flag_talking": "1",
+      "client_input_muted": "1",
+      "client_output_muted": "0",
+      "client_lastconnected": "1700001000",
+      "client_idle_time": "1000",
+      "client_platform": "Windows",
+      "client_version": "MASKED"
+    },
+    {
+      "clid": "3",
+      "cid": "1",
+      "client_database_id": "1",
+      "client_nickname": "serveradmin",
+      "client_type": "1",
+      "client_unique_identifier": "MASKED_QUERY_UID=",
+      "client_away": "0",
+      "client_away_message": "",
+      "client_flag_talking": "0",
+      "client_input_muted": "0",
+      "client_output_muted": "0",
+      "client_lastconnected": "1700000000",
+      "client_idle_time": "1000",
+      "client_platform": "Windows",
+      "client_version": "MASKED"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -11,13 +12,14 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfDataRate, UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import TeamSpeakConfigEntry
-from .const import DOMAIN
+from .const import CONF_USERS
 from .coordinator import TeamSpeakDataUpdateCoordinator
+from .entity import TeamSpeakUserEntity, server_device_info
 
 
 async def async_setup_entry(
@@ -43,6 +45,11 @@ async def async_setup_entry(
         TeamSpeakServerStatusSensor(coordinator, server_unique_id),
     ]
 
+    for user in entry.options.get(CONF_USERS, []):
+        sensors.append(TeamSpeakUserChannelSensor(coordinator, user))
+        sensors.append(TeamSpeakUserSinceSensor(coordinator, user))
+        sensors.append(TeamSpeakUserTotalConnectionsSensor(coordinator, user))
+
     async_add_entities(sensors)
 
 
@@ -61,17 +68,9 @@ class TeamSpeakBaseSensor(
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._server_unique_id = server_unique_id
-        server_info = coordinator.data["server_info"]
 
         # Device info shared by all sensors
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, server_unique_id)},
-            name=server_info.get("virtualserver_name", "TeamSpeak Server"),
-            manufacturer="TeamSpeak Systems GmbH",
-            model="TeamSpeak Server",
-            sw_version=server_info.get("virtualserver_version", "Unknown"),
-            configuration_url=f"http://{coordinator.client.host}:{coordinator.client.port}",
-        )
+        self._attr_device_info = server_device_info(coordinator)
 
 
 class TeamSpeakClientsOnlineSensor(TeamSpeakBaseSensor):
@@ -91,21 +90,15 @@ class TeamSpeakClientsOnlineSensor(TeamSpeakBaseSensor):
 
     @property
     def native_value(self) -> int | None:
-        """Return the number of clients online."""
-        server_info = self.coordinator.data["server_info"]
-        value = server_info.get("virtualserver_clientsonline")
-        return int(value) if value is not None else None
+        """Return the number of real clients online (query clients excluded)."""
+        return self.coordinator.data["real_clients"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        client_list = self.coordinator.data["client_list"]
-        server_info = self.coordinator.data["server_info"]
         return {
-            "client_list": client_list,
-            "query_clients": int(
-                server_info.get("virtualserver_queryclientsonline", 0)
-            ),
+            "client_list": self.coordinator.data["client_list"],
+            "query_clients": self.coordinator.data["query_clients"],
         }
 
 
@@ -292,3 +285,81 @@ class TeamSpeakServerStatusSensor(TeamSpeakBaseSensor):
             "platform": server_info.get("virtualserver_platform"),
             "server_port": server_info.get("virtualserver_port"),
         }
+
+
+class TeamSpeakUserChannelSensor(TeamSpeakUserEntity, SensorEntity):
+    """Channel a tracked user is currently in."""
+
+    _requires_online = True
+    _attr_icon = "mdi:pound"
+
+    def __init__(
+        self, coordinator: TeamSpeakDataUpdateCoordinator, user: dict[str, Any]
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, user, "channel")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the channel name."""
+        return data.channel if (data := self.user_data) else None
+
+
+class TeamSpeakUserSinceSensor(TeamSpeakUserEntity, SensorEntity):
+    """Online since (while online) or last seen (while offline)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(
+        self, coordinator: TeamSpeakDataUpdateCoordinator, user: dict[str, Any]
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, user, "since")
+
+    @property
+    def available(self) -> bool:
+        """Unavailable while there is no timestamp to show."""
+        data = self.user_data
+        return super().available and data is not None and data.since is not None
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the session start or the moment the user went offline."""
+        return data.since if (data := self.user_data) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        data = self.user_data
+        return {
+            "online": data.online if data else None,
+            "since_estimated": data.since_estimated if data else None,
+        }
+
+
+class TeamSpeakUserTotalConnectionsSensor(TeamSpeakUserEntity, SensorEntity):
+    """How often a tracked user has connected to the server."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:counter"
+
+    def __init__(
+        self, coordinator: TeamSpeakDataUpdateCoordinator, user: dict[str, Any]
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, user, "total_connections")
+
+    @property
+    def available(self) -> bool:
+        """Unavailable until clientdblist knows the user."""
+        data = self.user_data
+        return (
+            super().available
+            and data is not None
+            and data.total_connections is not None
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the total number of connections."""
+        return data.total_connections if (data := self.user_data) else None

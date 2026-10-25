@@ -1,0 +1,16 @@
+{
+  "status": {
+    "code": 0,
+    "message": "ok"
+  },
+  "body": [
+    {
+      "cid": "1",
+      "channel_name": "Lobby"
+    },
+    {
+      "cid": "2",
+      "channel_name": "Gaming"
+    }
+  ]
+}

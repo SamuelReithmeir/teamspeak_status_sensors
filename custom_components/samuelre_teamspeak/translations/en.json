@@ -36,6 +36,9 @@
             "bandwidth_sent": {
                 "name": "Bandwidth sent"
             },
+            "channel": {
+                "name": "Channel"
+            },
             "channels": {
                 "name": "Channels"
             },
@@ -48,8 +51,83 @@
             "server_status": {
                 "name": "Server status"
             },
+            "since": {
+                "name": "Online since / last seen"
+            },
+            "total_connections": {
+                "name": "Total connections"
+            },
             "uptime": {
                 "name": "Uptime"
+            }
+        },
+        "binary_sensor": {
+            "online": {
+                "name": "Online"
+            },
+            "microphone_muted": {
+                "name": "Microphone muted"
+            },
+            "headphones_muted": {
+                "name": "Headphones muted"
+            },
+            "away": {
+                "name": "Away"
+            },
+            "talking": {
+                "name": "Talking"
+            }
+        }
+    },
+    "options": {
+        "abort": {
+            "cannot_connect": "Could not read the user list from the TeamSpeak server.",
+            "no_users": "There are no more users to add.",
+            "not_loaded": "The integration is not loaded; try again once the server is reachable."
+        },
+        "error": {
+            "name_exists": "Another user already has this name (or it is empty)."
+        },
+        "step": {
+            "init": {
+                "title": "TeamSpeak users",
+                "description": "Users get their own device with presence, status and timing entities.",
+                "menu_options": {
+                    "add_user": "Add user",
+                    "edit_user": "Edit user",
+                    "remove_user": "Remove user"
+                }
+            },
+            "add_user": {
+                "title": "Add user",
+                "description": "Pick a user the server knows. IDs tell apart users with the same nickname.",
+                "data": {
+                    "db_id": "TeamSpeak user",
+                    "name": "Display name"
+                },
+                "data_description": {
+                    "name": "Used for the device and the entity id (binary_sensor.tsonline_<name>). Defaults to the nickname."
+                }
+            },
+            "edit_user": {
+                "title": "Edit user",
+                "data": {
+                    "db_id": "TeamSpeak user"
+                }
+            },
+            "edit_name": {
+                "title": "Rename {user}",
+                "data": {
+                    "name": "Display name"
+                },
+                "description": "Existing entity ids are kept; only the device name changes."
+            },
+            "remove_user": {
+                "title": "Remove user",
+                "description": "The devices and entities of the selected users are deleted.",
+                "data": {
+                    "users": "Users to remove"
+                }
             }
         }
     }

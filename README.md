@@ -19,13 +19,42 @@ Monitor your TeamSpeak server directly from Home Assistant! This integration pro
 
 | Sensor                 | Description                      | Device Class | Attributes                           |
 | ---------------------- | -------------------------------- | ------------ | ------------------------------------ |
-| **Clients Online**     | Number of connected clients      | -            | Client list, Query clients count     |
+| **Clients Online**     | Connected users (query clients excluded) | -    | Client list (trimmed), Query clients count |
 | **Channels**           | Number of channels on the server | -            | Full channel list                    |
 | **Uptime**             | Server uptime in seconds         | Duration     | -                                    |
 | **Max Clients**        | Maximum allowed clients          | -            | -                                    |
 | **Bandwidth Received** | Incoming bandwidth (bytes/sec)   | Data Rate    | Total bytes, Last minute average     |
 | **Bandwidth Sent**     | Outgoing bandwidth (bytes/sec)   | Data Rate    | Total bytes, Last minute average     |
 | **Server Status**      | Current server status            | -            | Server name, version, platform, port |
+
+## Tracking users
+
+In **Settings → Devices & Services → TeamSpeak Server Info → Configure** you can
+**add**, **edit** or **remove** users. Pick a user from the list of everyone the
+server has ever seen (shown as `Nickname (ID n)`, so duplicate nicknames can be told
+apart) and give it a display name. Each user becomes a device `TeamSpeak <name>`
+below the server device, with:
+
+| Entity | Notes |
+| ------ | ----- |
+| `binary_sensor.tsonline_<name>` | Presence. Attributes: `since` (ISO time), `since_estimated`, `nickname`, `database_id`, `channel`, `microphone_muted`, `headphones_muted`, `away`, `talking` |
+| Microphone muted, Headphones muted, Away, Talking | Only headphones muted and away are enabled by default |
+| Channel | Channel name; refreshed together with the user list |
+| Online since / last seen | Timestamp sensor; session start while online, time the user left while offline |
+| Total connections | Diagnostic |
+
+`since` while online is the start of the current session. While offline it is the
+moment the integration saw the user leave; this is stored, so it survives Home
+Assistant restarts. If the user left while Home Assistant was not running, it falls
+back to the start of their last session and `since_estimated` is `true`.
+
+The entity id of the presence sensor is fixed at `binary_sensor.tsonline_<slug of the
+display name>`. If you already have a template sensor with that id, rename or delete
+it first, otherwise Home Assistant appends `_2`.
+
+Users are identified by their database id (the unique identifier is stored as a second
+key), never by nickname. Only `clientlist` (every poll), `serverinfo` (every poll),
+`clientdblist` and `channellist` (every 5 minutes) are requested.
 
 ## Prerequisites
 
