@@ -1,0 +1,21 @@
+{
+  "status": {
+    "code": 0,
+    "message": "ok"
+  },
+  "body": [
+    {
+      "virtualserver_name": "Test Server",
+      "virtualserver_unique_identifier": "MASKED_SERVER_UID=",
+      "virtualserver_version": "6.0.0-beta13.1",
+      "virtualserver_clientsonline": "3",
+      "virtualserver_queryclientsonline": "1",
+      "virtualserver_channelsonline": "2",
+      "virtualserver_uptime": "1000",
+      "virtualserver_maxclients": "32",
+      "virtualserver_status": "online",
+      "virtualserver_port": "9987",
+      "virtualserver_platform": "Linux"
+    }
+  ]
+}
