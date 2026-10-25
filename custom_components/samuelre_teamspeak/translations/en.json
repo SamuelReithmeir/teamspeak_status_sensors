@@ -106,7 +106,7 @@
                     "name": "Display name"
                 },
                 "data_description": {
-                    "name": "Used for the device and the entity id (binary_sensor.tsonline_<name>). Defaults to the nickname."
+                    "name": "Used for the device and the entity id (binary_sensor.tsonline_ followed by the name). Defaults to the nickname."
                 }
             },
             "edit_user": {
